@@ -309,6 +309,33 @@ module type NETWORK = sig
       defaults. *)
 end
 
+(** {1 Protocol handler}
+
+    A protocol handler is an abstract interface for network layers: handlers for
+    protocols on top can be registered, depending on a specific magic value. *)
+module type PROTOCOL_HANDLER = sig
+  type address
+  type buffer
+  type +'a io
+  type t
+
+  (** The type of a function which handles a byte vector *)
+  type handle = src:address -> dst:address -> buffer -> unit io
+
+  (** The insertion policy for conflicts *)
+  type insertion_policy = [ `Overwrite | `Combine ]
+
+  (** Allow for a catchall or a specific port (or other magic number, defined by the layer implementation). *)
+  type dispatch = [ `Default | `Int of int ]
+
+  (** [register ~if_exists t handle dispatch] registers the [handle] into [t], using
+     the [if_exists] insertion policy and the [dispatch] magic. *)
+  val register : ?if_exists:insertion_policy -> t -> handle -> dispatch -> unit
+
+  (** [deregister t magic] unregisters a given [magic] from [t]. *)
+  val deregister : t -> dispatch -> unit
+end
+
 (** {1 Ethernet stack}
 
     An Ethernet stack that parses frames from a network device and

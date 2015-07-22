@@ -32,6 +32,11 @@ module type NETWORK = NETWORK
    and type buffer = Cstruct.t
    and type macaddr = Macaddr.t
 
+
+module type PROTOCOL_HANDLER = PROTOCOL_HANDLER
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+
 (** Ethernet interface *)
 module type ETHIF = ETHIF
   with type 'a io = 'a Lwt.t
