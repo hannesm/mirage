@@ -362,6 +362,12 @@ module type ETHIF = sig
         type error := error
     and type id    := netif
 
+  include PROTOCOL_HANDLER with
+        type address  := macaddr
+    and type buffer   := buffer
+    and type +'a io   := 'a io
+    and type t        := t
+
   val write: t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
 
@@ -372,7 +378,7 @@ module type ETHIF = sig
   val mac: t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)
 
-  val input: arpv4:(buffer -> unit io) -> ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
+  val input : t -> buffer -> unit io
   (** {b FIXME} [listen nf fn] is a blocking operation that calls [fn
       buf] with every packet that is read from the interface.  It
       returns as soon as it has initialised, and the function can be
@@ -400,29 +406,17 @@ module type IP = sig
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
   ]
-  (** The typr ofr IO operation errors. *)
+  (** The typr for IO operation errors. *)
 
   include DEVICE with
         type error := error
     and type id    := ethif
 
-  type callback = src:ipaddr -> dst:ipaddr -> buffer -> unit io
-  (** An input continuation used by the parsing functions to pass on
-      an input packet down the stack.
-
-      [callback ~src ~dst buf] will be called with [src] and [dst]
-      containing the source and destination IP address respectively,
-      and [buf] will be a buffer pointing at the start of the IP
-      payload. *)
-
-  val input:
-    t ->
-    tcp:callback -> udp:callback -> default:(proto:int -> callback) ->
-    buffer -> unit io
-  (** [input ~tcp ~udp ~default ip buf] demultiplexes an incoming
-      [buffer] that contains an IP frame. It examines the protocol
-      header and passes the result onto either the [tcp] or [udp]
-      function, or the [default] function for unknown IP protocols. *)
+  include PROTOCOL_HANDLER with
+        type address  := ipaddr
+    and type buffer   := buffer
+    and type +'a io   := 'a io
+    and type t        := t
 
   val allocate_frame: t -> dst:ipaddr -> proto:[`ICMP | `TCP | `UDP] -> buffer * int
   (** [allocate_frame t ~dst ~proto] retrurns a pair [(pkt, len)] such that
@@ -487,10 +481,6 @@ end
 (** {1 IPv4 stack} *)
 module type IPV4 = sig
   include IP
-
-  val input_arpv4: t -> buffer -> unit io
-  (** {b FIXME} *)
-
 end
 
 (** {1 IPv6 stack} *)
@@ -524,19 +514,16 @@ module type UDP = sig
   (** The type for IO operation errors. *)
 
   include DEVICE with
-      type error := error
-  and type id := ip
+        type error := error
+    and type id    := ip
 
-  type callback = src:ipaddr -> dst:ipaddr -> src_port:int -> buffer -> unit io
-  (** The type for callback functions that adds the UDP metadata for
-      [src] and [dst] IP addresses, the [src_port] of the connection
-      and the [buffer] payload of the datagram. *)
+  type address = ipaddr * int
 
-  val input: listeners:(dst_port:int -> callback option) -> t -> ipinput
-  (** [input listeners t] demultiplexes incoming datagrams based on
-      their destination port.  The [listeners] callback will either
-      return a concrete handler or a [None], which results in the
-      datagram being dropped. *)
+  include PROTOCOL_HANDLER with
+        type address  := address
+    and type buffer   := buffer
+    and type +'a io   := 'a io
+    and type t        := t
 
   val write: ?source_port:int -> dest_ip:ipaddr -> dest_port:int -> t -> buffer -> unit io
   (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread
@@ -577,14 +564,14 @@ module type TCP = sig
   (** The type for IO operation errors. *)
 
   include DEVICE with
-      type error := error
-  and type id := ip
+        type error := error
+    and type id    := ip
 
   include FLOW with
-      type error  := error
-  and type 'a io  := 'a io
-  and type buffer := buffer
-  and type flow   := flow
+        type error  := error
+    and type 'a io  := 'a io
+    and type buffer := buffer
+    and type flow   := flow
 
   type callback = flow -> unit io
   (** The type for application callback that receives a [flow] that it
@@ -613,11 +600,12 @@ module type TCP = sig
   (** [create_connection t (addr,port)] will open a TCPv4 connection
       to the specified endpoint. *)
 
-  val input: t -> listeners:(int -> callback option) -> ipinput
-  (** [input t listeners] defines a mapping of threads that are
-      willing to accept new flows on a given port.  If the [callback]
-      returns [None], the input function will return an RST to refuse
-      connections on a port. *)
+  val input: t -> ipinput
+  (** [input t] defines a mapping of threads that are
+      willing to accept new flows on a given port.  *)
+
+  val register: t -> port:int -> callback -> unit
+  val deregister: t -> port:int -> unit
 end
 
 (** {1 TCP/IPv4 stack}
@@ -699,7 +687,7 @@ module type STACKV4 = sig
       which can handle raw IPv4 frames, or manipulate IP address
       configuration on the stack interface. *)
 
-  val listen_udpv4: t -> port:int -> UDPV4.callback -> unit
+  val listen_udpv4: t -> port:int -> UDPV4.handle -> unit
   (** [listen_udpv4 t ~port cb] will register the [cb] callback on the
       UDPv4 [port] and immediately return.  Multiple bindings to the
       same port will overwrite previous bindings, so callbacks will
