@@ -589,13 +589,6 @@ let configure i =
     configure_virtio_libvirt_xml ~root ~name
   | _ -> R.ok ()
 
-let terminal () =
-  let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in
-  let isatty = try Unix.(isatty (descr_of_out_channel Pervasives.stdout)) with
-    | Unix.Unix_error _ -> false
-  in
-  not dumb && isatty
-
 let compile ignore_dirs libs warn_error target =
   let tags =
     [ Fmt.strf "predicate(%s)" (backend_predicate target);
@@ -606,8 +599,7 @@ let compile ignore_dirs libs warn_error target =
       "principal";
       "safe_string" ] @
     (if warn_error then ["warn_error(+1..49)"] else []) @
-    (match target with `MacOSX | `Unix -> ["thread"] | _ -> []) @
-    (if terminal () then ["color(always)"] else [])
+    (match target with `MacOSX | `Unix -> ["thread"] | _ -> [])
   and result = match target with
     | `Unix | `MacOSX -> "main.native"
     | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode -> "main.native.o"
