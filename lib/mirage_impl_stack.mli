@@ -6,6 +6,7 @@ val direct_stackv4 :
      ?clock:Mirage_impl_mclock.mclock Functoria.impl
   -> ?random:Mirage_impl_random.random Functoria.impl
   -> ?time:Mirage_impl_time.time Functoria.impl
+  -> ?tcp:Mirage_impl_tcp.tcpv4 Functoria.impl
   -> ?group:string
   -> Mirage_impl_network.network Functoria.impl
   -> Mirage_impl_ethernet.ethernet Functoria.impl
@@ -57,6 +58,7 @@ val direct_stackv6 :
      ?clock:Mirage_impl_mclock.mclock Functoria.impl
   -> ?random:Mirage_impl_random.random Functoria.impl
   -> ?time:Mirage_impl_time.time Functoria.impl
+  -> ?tcp:Mirage_impl_tcp.tcpv6 Functoria.impl
   -> ?group:string
   -> Mirage_impl_network.network Functoria.impl
   -> Mirage_impl_ethernet.ethernet Functoria.impl
@@ -86,6 +88,7 @@ val direct_stackv4v6 :
      ?clock:Mirage_impl_mclock.mclock Functoria.impl
   -> ?random:Mirage_impl_random.random Functoria.impl
   -> ?time:Mirage_impl_time.time Functoria.impl
+  -> ?tcp:Mirage_impl_tcp.tcpv4v6 Functoria.impl
   -> ?group:string
   -> ipv4_only:bool Mirage_key.key
   -> ipv6_only:bool Mirage_key.key

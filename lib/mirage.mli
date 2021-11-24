@@ -392,6 +392,7 @@ val direct_stackv4:
   ?clock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?tcp:tcpv4 impl ->
   ?group:string ->
   network impl -> ethernet impl -> arpv4 impl -> ipv4 impl -> stackv4 impl
 
@@ -438,6 +439,7 @@ val direct_stackv6 :
      ?clock:mclock impl
   -> ?random:random impl
   -> ?time:time impl
+  -> ?tcp:tcpv6 impl
   -> ?group:string
   -> network impl
   -> ethernet impl
@@ -479,6 +481,7 @@ val direct_stackv4v6 :
      ?clock:mclock impl
   -> ?random:random impl
   -> ?time:time impl
+  -> ?tcp:tcpv4v6 impl
   -> ?group:string
   -> ipv4_only:bool Key.key
   -> ipv6_only:bool Key.key
